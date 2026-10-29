@@ -44,37 +44,65 @@ class VideoPreviewCanvas extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 child: Container(
                   color: const Color(0xFF141721),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          isShorts ? Icons.smartphone : Icons.tv,
-                          size: 48,
-                          color: const Color(0xFF00E5FF).withOpacity(0.4),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (activeScene != null && activeScene.thumbnailUrl.isNotEmpty)
+                        Image.network(
+                          activeScene.thumbnailUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox(),
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          activeScene != null ? "Scene ${activeScene.sceneIndex}" : "Preview",
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.3),
+                              Colors.black.withOpacity(0.7),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Text(
-                            activeScene?.visualPrompt ?? "",
-                            maxLines: 2,
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white38, fontSize: 11),
-                          ),
-                        )
-                      ],
-                    ),
+                      ),
+                      Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (activeScene == null || activeScene.thumbnailUrl.isEmpty) ...[
+                              Icon(
+                                isShorts ? Icons.smartphone : Icons.tv,
+                                size: 48,
+                                color: const Color(0xFF00E5FF).withOpacity(0.4),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            Text(
+                              activeScene != null ? "Scene ${activeScene.sceneIndex}" : "Preview",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: Text(
+                                activeScene?.searchQuery.isNotEmpty == true
+                                    ? "Footage: ${activeScene!.searchQuery}"
+                                    : (activeScene?.visualPrompt ?? ""),
+                                maxLines: 2,
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

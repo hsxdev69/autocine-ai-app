@@ -5,7 +5,11 @@ class SceneModel {
   int sceneIndex;
   String narrationText;
   String visualPrompt;
+  String searchQuery;
   String mediaPath; // URL or local file path
+  String streamUrl;
+  String audioPath;
+  String thumbnailUrl;
   bool isVideo;
   double duration; // seconds
   CameraMotion motion;
@@ -15,7 +19,11 @@ class SceneModel {
     required this.sceneIndex,
     required this.narrationText,
     required this.visualPrompt,
+    this.searchQuery = '',
     required this.mediaPath,
+    this.streamUrl = '',
+    this.audioPath = '',
+    this.thumbnailUrl = '',
     this.isVideo = false,
     required this.duration,
     this.motion = CameraMotion.zoomIn,
@@ -26,7 +34,11 @@ class SceneModel {
     'sceneIndex': sceneIndex,
     'narrationText': narrationText,
     'visualPrompt': visualPrompt,
+    'searchQuery': searchQuery,
     'mediaPath': mediaPath,
+    'streamUrl': streamUrl,
+    'audioPath': audioPath,
+    'thumbnailUrl': thumbnailUrl,
     'isVideo': isVideo,
     'duration': duration,
     'motion': motion.toString().split('.').last,
@@ -37,7 +49,11 @@ class SceneModel {
     sceneIndex: json['sceneIndex'] ?? 0,
     narrationText: json['narrationText'] ?? '',
     visualPrompt: json['visualPrompt'] ?? '',
+    searchQuery: json['searchQuery'] ?? json['youtubeSearchQuery'] ?? '',
     mediaPath: json['mediaPath'] ?? '',
+    streamUrl: json['streamUrl'] ?? '',
+    audioPath: json['audioPath'] ?? '',
+    thumbnailUrl: json['thumbnailUrl'] ?? '',
     isVideo: json['isVideo'] ?? false,
     duration: (json['duration'] as num?)?.toDouble() ?? 5.0,
     motion: CameraMotion.values.firstWhere(
