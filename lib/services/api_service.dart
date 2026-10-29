@@ -132,7 +132,7 @@ JSON Schema:
     }
 
     // Fallback if all network calls fail
-    return {
+    final fallback = {
       "title": topic,
       "format": format == VideoFormat.shorts9x16 ? "9:16" : "16:9",
       "scenes": [
