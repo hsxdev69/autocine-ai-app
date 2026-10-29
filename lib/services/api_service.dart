@@ -34,11 +34,12 @@ class ApiService {
 
   final YoutubeExplode _yt = YoutubeExplode();
 
-  /// Real-Time Gemini Script Generation
+  /// Real-Time Gemini Script Generation with Exact Target Duration
   Future<Map<String, dynamic>> generateAiScript({
     required String topic,
     required VideoFormat format,
     required String mode,
+    double targetDurationSeconds = 30.0,
     String? customApiKey,
   }) async {
     final apiKey = (customApiKey != null && customApiKey.trim().isNotEmpty)
@@ -46,29 +47,35 @@ class ApiService {
         : defaultGeminiApiKey;
 
     final formatStr = format == VideoFormat.shorts9x16 ? "9:16 vertical Shorts/Reels" : "16:9 widescreen YouTube";
+    final int minScenes = (targetDurationSeconds / 10).clamp(3, 12).toInt();
+    final int maxScenes = (targetDurationSeconds / 5).clamp(minScenes, 15).toInt();
 
     final prompt = """
 You are an elite autonomous AI video producer and viral scriptwriter.
 Create a high-retention, cinematic video storyboard for the topic: "$topic" in $formatStr format.
 Language: High-engagement Hindi narration with captivating storytelling and dramatic pacing.
 
+CRITICAL REQUIREMENT:
+Target Total Duration: EXACTLY ${targetDurationSeconds.toStringAsFixed(1)} seconds.
+Divide into $minScenes to $maxScenes scenes such that the SUM of all scene durations equals EXACTLY ${targetDurationSeconds.toStringAsFixed(1)} seconds.
+
 You MUST reply with a raw JSON object only (no markdown, no backticks, no comments).
 JSON Schema:
 {
   "title": "Compelling Title",
   "format": "${format == VideoFormat.shorts9x16 ? "9:16" : "16:9"}",
+  "totalDuration": ${targetDurationSeconds.toStringAsFixed(1)},
   "scenes": [
     {
       "sceneIndex": 1,
       "narrationText": "Dramatic Hindi voiceover line...",
       "visualPrompt": "Cinematic visual description in English...",
-      "youtubeSearchQuery": "short relevant search terms for YouTube stock footage",
+      "youtubeSearchQuery": "short relevant search terms for YouTube footage",
       "duration": 5.0,
       "motion": "zoomIn"
     }
   ]
 }
-Create 4 to 6 detailed scenes.
 """;
 
     Exception? lastException;
@@ -113,6 +120,7 @@ Create 4 to 6 detailed scenes.
 
           final parsed = jsonDecode(rawText) as Map<String, dynamic>;
           if (parsed.containsKey('scenes') && (parsed['scenes'] as List).isNotEmpty) {
+            _calibrateSceneDurations(parsed['scenes'] as List, targetDurationSeconds);
             return parsed;
           }
         } else {
@@ -162,6 +170,30 @@ Create 4 to 6 detailed scenes.
         }
       ]
     };
+    _calibrateSceneDurations(fallback['scenes'] as List, targetDurationSeconds);
+    return fallback;
+  }
+
+  void _calibrateSceneDurations(List scenes, double targetDurationSeconds) {
+    if (scenes.isEmpty) return;
+    double sum = 0.0;
+    for (var s in scenes) {
+      sum += (s['duration'] as num?)?.toDouble() ?? 5.0;
+    }
+    if (sum <= 0) return;
+
+    double runningSum = 0.0;
+    for (int i = 0; i < scenes.length; i++) {
+      if (i == scenes.length - 1) {
+        final remainder = targetDurationSeconds - runningSum;
+        scenes[i]['duration'] = double.parse((remainder > 1.0 ? remainder : targetDurationSeconds / scenes.length).toStringAsFixed(1));
+      } else {
+        final orig = (scenes[i]['duration'] as num?)?.toDouble() ?? 5.0;
+        final scaled = double.parse(((orig / sum) * targetDurationSeconds).toStringAsFixed(1));
+        scenes[i]['duration'] = scaled;
+        runningSum += scaled;
+      }
+    }
   }
 
   /// Real-Time YouTube Video Search & Stream Extraction (yt-dlp equivalent for Dart)

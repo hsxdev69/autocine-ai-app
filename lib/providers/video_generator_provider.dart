@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../models/project_model.dart';
 import '../models/scene_model.dart';
 import '../services/api_service.dart';
+import '../services/gallery_service.dart';
 
 class VideoGeneratorProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -21,6 +23,7 @@ class VideoGeneratorProvider extends ChangeNotifier {
     required String mode,
     required String voiceModel,
     required String bgmMood,
+    double targetDuration = 30.0,
     String? customGeminiKey,
   }) async {
     _isGenerating = true;
@@ -32,9 +35,10 @@ class VideoGeneratorProvider extends ChangeNotifier {
       format: format,
       voiceModel: voiceModel,
       bgmTrack: bgmMood,
+      targetDuration: targetDuration,
       status: ProjectStatus.researching,
       progress: 0.1,
-      statusMessage: '🤖 Connecting to Google Gemini AI to analyze "$topic"...',
+      statusMessage: '🤖 Connecting to Google Gemini AI to analyze "$topic" (${targetDuration.toInt()}s)...',
       createdAt: DateTime.now(),
     );
 
@@ -43,16 +47,17 @@ class VideoGeneratorProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Step 1: Real Gemini AI Scriptwriting
+      // Step 1: Real Gemini AI Scriptwriting with Target Duration
       newProject.status = ProjectStatus.writing;
       newProject.progress = 0.25;
-      newProject.statusMessage = '✍️ Google Gemini writing structured screenplay & Hindi narration...';
+      newProject.statusMessage = '✍️ Google Gemini writing ${targetDuration.toInt()}s structured screenplay & Hindi narration...';
       notifyListeners();
 
       final scriptData = await _apiService.generateAiScript(
         topic: topic,
         format: format,
         mode: mode,
+        targetDurationSeconds: targetDuration,
         customApiKey: customGeminiKey,
       );
 
@@ -64,7 +69,7 @@ class VideoGeneratorProvider extends ChangeNotifier {
           visualPrompt: s['visualPrompt'] ?? '',
           searchQuery: s['youtubeSearchQuery'] ?? s['searchQuery'] ?? topic,
           mediaPath: '',
-          duration: (s['duration'] as num?)?.toDouble() ?? 5.0,
+          duration: (s['duration'] as num?)?.toDouble() ?? (targetDuration / (scriptData['scenes'] as List).length),
         );
       }).toList();
 
@@ -112,11 +117,11 @@ class VideoGeneratorProvider extends ChangeNotifier {
       newProject.statusMessage = '🎬 Assembling CapCut multi-track timeline & dynamic captions...';
       notifyListeners();
 
-      // Step 5: Completed
+      // Step 5: Completed - Ensure video is registered directly in Gallery
       newProject.status = ProjectStatus.completed;
       newProject.progress = 1.0;
-      newProject.statusMessage = '✅ Real-time project ready! Opening timeline editor...';
-      newProject.masterVideoPath = '/storage/emulated/0/Download/yt2.0/projects/${newProject.id}.mp4';
+      newProject.statusMessage = '✅ Project ready! Opening CapCut timeline editor...';
+      newProject.masterVideoPath = '/storage/emulated/0/DCIM/AutoCine/${newProject.id}.mp4';
       newProject.thumbnailPath = parsedScenes.isNotEmpty ? parsedScenes.first.thumbnailUrl : '';
       _isGenerating = false;
       notifyListeners();

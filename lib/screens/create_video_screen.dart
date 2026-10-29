@@ -15,9 +15,19 @@ class CreateVideoScreen extends StatefulWidget {
 class _CreateVideoScreenState extends State<CreateVideoScreen> {
   final TextEditingController _topicController = TextEditingController();
   VideoFormat _selectedFormat = VideoFormat.shorts9x16;
+  int _selectedMinutes = 0;
+  int _selectedSeconds = 30;
   String _selectedMode = "Footage & Lore";
   String _selectedVoice = "hi-IN-MadhurNeural";
   String _selectedBgm = "Suspense Ticking Tension";
+
+  double get _totalTargetSeconds => (_selectedMinutes * 60 + _selectedSeconds).toDouble().clamp(10.0, 600.0);
+
+  String get _formattedDuration {
+    final m = _selectedMinutes.toString().padLeft(2, '0');
+    final s = _selectedSeconds.toString().padLeft(2, '0');
+    return "$m:$s (${_totalTargetSeconds.toInt()}s)";
+  }
 
   final List<String> _suggestedTopics = [
     "Doctor Doom Secret Lore",
@@ -95,6 +105,125 @@ class _CreateVideoScreenState extends State<CreateVideoScreen> {
                         ),
                       ),
                     ],
+                  ),
+
+                  const SizedBox(height: 24),
+                  // Duration Selector (Minutes & Seconds)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Target Video Duration", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00E5FF).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF00E5FF), width: 1),
+                        ),
+                        child: Text(
+                          "⏱️ $_formattedDuration",
+                          style: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  // Quick Duration Chips
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _durationChip("15s", 0, 15),
+                      _durationChip("30s", 0, 30),
+                      _durationChip("45s", 0, 45),
+                      _durationChip("60s (1m)", 1, 0),
+                      _durationChip("90s", 1, 30),
+                      _durationChip("2m", 2, 0),
+                      _durationChip("3m", 3, 0),
+                      _durationChip("5m", 5, 0),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Accurate Minutes & Seconds Stepper
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1D27),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF232736)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        // Minutes Stepper
+                        Column(
+                          children: [
+                            const Text("MINUTES", style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline, color: Color(0xFF00E5FF)),
+                                  onPressed: _selectedMinutes > 0
+                                      ? () => setState(() => _selectedMinutes--)
+                                      : null,
+                                ),
+                                Text(
+                                  "$_selectedMinutes min",
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add_circle_outline, color: Color(0xFF00E5FF)),
+                                  onPressed: _selectedMinutes < 10
+                                      ? () => setState(() => _selectedMinutes++)
+                                      : null,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Container(width: 1, height: 40, color: const Color(0xFF2E3346)),
+                        // Seconds Stepper
+                        Column(
+                          children: [
+                            const Text("SECONDS", style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline, color: Color(0xFF00E5FF)),
+                                  onPressed: (_selectedMinutes > 0 || _selectedSeconds > 10)
+                                      ? () => setState(() {
+                                          if (_selectedSeconds >= 5) {
+                                            _selectedSeconds -= 5;
+                                          } else if (_selectedMinutes > 0) {
+                                            _selectedMinutes--;
+                                            _selectedSeconds = 55;
+                                          }
+                                        })
+                                      : null,
+                                ),
+                                Text(
+                                  "$_selectedSeconds sec",
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add_circle_outline, color: Color(0xFF00E5FF)),
+                                  onPressed: () => setState(() {
+                                    if (_selectedSeconds <= 50) {
+                                      _selectedSeconds += 5;
+                                    } else if (_selectedMinutes < 10) {
+                                      _selectedMinutes++;
+                                      _selectedSeconds = 0;
+                                    }
+                                  }),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: 24),
@@ -181,6 +310,7 @@ class _CreateVideoScreenState extends State<CreateVideoScreen> {
                           mode: _selectedMode,
                           voiceModel: _selectedVoice,
                           bgmMood: _selectedBgm,
+                          targetDuration: _totalTargetSeconds,
                         );
 
                         if (context.mounted) {
@@ -237,6 +367,27 @@ class _CreateVideoScreenState extends State<CreateVideoScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _durationChip(String label, int min, int sec) {
+    final isSelected = _selectedMinutes == min && _selectedSeconds == sec;
+    return ChoiceChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          color: isSelected ? Colors.black : Colors.white70,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      selected: isSelected,
+      selectedColor: const Color(0xFF00E5FF),
+      backgroundColor: const Color(0xFF232736),
+      onSelected: (_) => setState(() {
+        _selectedMinutes = min;
+        _selectedSeconds = sec;
+      }),
     );
   }
 

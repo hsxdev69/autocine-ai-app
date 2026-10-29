@@ -16,6 +16,7 @@ class ProjectModel {
   String? thumbnailPath;
   String? bgmTrack;
   String voiceModel;
+  double targetDuration; // accurate seconds requested by user
   DateTime createdAt;
 
   ProjectModel({
@@ -31,8 +32,11 @@ class ProjectModel {
     this.thumbnailPath,
     this.bgmTrack,
     this.voiceModel = 'hi-IN-MadhurNeural',
+    this.targetDuration = 30.0,
     required this.createdAt,
   });
 
-  double get totalDuration => scenes.fold(0.0, (acc, s) => acc + s.duration);
+  double get totalDuration => scenes.isNotEmpty
+      ? scenes.fold(0.0, (acc, s) => acc + s.duration)
+      : targetDuration;
 }

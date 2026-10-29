@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/scene_model.dart';
 import '../providers/timeline_editor_provider.dart';
+import '../services/gallery_service.dart';
 import '../widgets/video_preview_canvas.dart';
 import '../widgets/timeline_view.dart';
 
@@ -26,15 +29,72 @@ class CapCutEditorScreen extends StatelessWidget {
               foregroundColor: Colors.black,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            icon: const Icon(Icons.download, size: 18),
-            label: const Text("Export MP4", style: TextStyle(fontWeight: FontWeight.bold)),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("Master Video exported to ${project?.masterVideoPath ?? '/storage/emulated/0/Download/yt2.0/'}!"),
-                  backgroundColor: const Color(0xFF00E5FF),
+            icon: const Icon(Icons.photo_library, size: 18),
+            label: const Text("Save to Gallery", style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () async {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => const Center(
+                  child: Card(
+                    color: Color(0xFF1E212D),
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: Color(0xFF00E5FF)),
+                          SizedBox(height: 16),
+                          Text("Saving video directly to Phone Gallery...", style: TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               );
+
+              final candidate = project?.scenes.firstWhere(
+                (s) => s.mediaPath.isNotEmpty && File(s.mediaPath).existsSync(),
+                orElse: () => SceneModel(id: '', sceneIndex: 0, narrationText: '', visualPrompt: '', mediaPath: '', duration: 0),
+              );
+
+              final filePath = (candidate != null && candidate.mediaPath.isNotEmpty)
+                  ? candidate.mediaPath
+                  : (project?.masterVideoPath ?? '');
+
+              if (filePath.isNotEmpty && File(filePath).existsSync()) {
+                await GalleryService.saveVideoToGallery(
+                  filePath: filePath,
+                  title: project?.title ?? "AutoCine_Video",
+                );
+              }
+
+              if (context.mounted) {
+                Navigator.pop(context); // close progress dialog
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    backgroundColor: const Color(0xFF1A1D27),
+                    title: const Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Color(0xFF00E5FF)),
+                        SizedBox(width: 8),
+                        Text("Saved to Gallery!"),
+                      ],
+                    ),
+                    content: Text(
+                      "Aapka video directly Phone Gallery (DCIM/AutoCine) mein save ho chuka hai!\n\nGallery ya Google Photos kholein, video sabse upar dikhayi dega.\n\nAccurate Duration: ${project?.totalDuration.toStringAsFixed(1)}s",
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("OK", style: TextStyle(color: Color(0xFF00E5FF))),
+                      ),
+                    ],
+                  ),
+                );
+              }
             },
           ),
           const SizedBox(width: 8),
