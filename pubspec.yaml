@@ -1,0 +1,34 @@
+name: autocine_app
+description: "AutoCine - Autonomous AI Video Creator & CapCut-Style Editor"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  provider: ^6.1.2
+  video_player: ^2.8.6
+  chewie: ^1.8.1
+  http: ^1.2.1
+  path_provider: ^2.1.3
+  share_plus: ^9.0.0
+  google_fonts: ^6.2.1
+  intl: ^0.19.0
+  flutter_svg: ^2.0.10+1
+  uuid: ^4.4.0
+  percent_indicator: ^4.2.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/

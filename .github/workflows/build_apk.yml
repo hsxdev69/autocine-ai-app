@@ -1,0 +1,62 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 🐦 Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.x'
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install Flutter Dependencies
+        run: flutter pub get
+
+      - name: 🔨 Build Release APK
+        run: flutter build apk --release --split-per-abi=false
+
+      - name: 📤 Upload Release APK to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoCine-Release-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: 🚀 Auto Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0-${{ github.run_number }}
+          name: AutoCine AI Studio v1.0.0 (Build ${{ github.run_number }})
+          body: |
+            ## 🎬 AutoCine AI Video Creator & CapCut Editor APK
+            Automatically compiled via GitHub Actions CI/CD!
+            
+            ### Features:
+            - Autonomous AI Topic Research & Scriptwriter
+            - Multi-track CapCut-style Timeline Editor
+            - Dynamic Bouncing Subtitles / Captions
+            - 9:16 Shorts & 16:9 Long-form Video Modes
+            - Emotional Hindi AI Voiceover (Madhur, Viraj, Salman)
+            - Auto-ducked Suspense Background Music
+          files: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
