@@ -38,3 +38,8 @@ migrate_working_dir/
 **/android/local.properties
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
+
+# Secrets & Environment Variables
+.env
+.env.*
+!.env.example
