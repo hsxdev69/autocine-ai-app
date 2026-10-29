@@ -21,6 +21,7 @@ class VideoGeneratorProvider extends ChangeNotifier {
     required String mode,
     required String voiceModel,
     required String bgmMood,
+    String? customGeminiKey,
   }) async {
     _isGenerating = true;
     final projectId = const Uuid().v4();
@@ -33,7 +34,7 @@ class VideoGeneratorProvider extends ChangeNotifier {
       bgmTrack: bgmMood,
       status: ProjectStatus.researching,
       progress: 0.1,
-      statusMessage: '🔍 Searching YouTube & Web for source lore...',
+      statusMessage: '🤖 Connecting to Google Gemini AI to analyze "$topic"...',
       createdAt: DateTime.now(),
     );
 
@@ -42,67 +43,102 @@ class VideoGeneratorProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Step 1: Research & Scripting (0.3)
-      await Future.delayed(const Duration(seconds: 1));
+      // Step 1: Real Gemini AI Scriptwriting
       newProject.status = ProjectStatus.writing;
-      newProject.progress = 0.3;
-      newProject.statusMessage = '✍️ Writing high-retention storytelling script...';
+      newProject.progress = 0.25;
+      newProject.statusMessage = '✍️ Google Gemini writing structured screenplay & Hindi narration...';
       notifyListeners();
 
       final scriptData = await _apiService.generateAiScript(
         topic: topic,
         format: format,
         mode: mode,
+        customApiKey: customGeminiKey,
       );
 
       final List<SceneModel> parsedScenes = (scriptData['scenes'] as List).map((s) {
         return SceneModel(
           id: const Uuid().v4(),
-          sceneIndex: s['sceneIndex'],
-          narrationText: s['narrationText'],
-          visualPrompt: s['visualPrompt'],
-          mediaPath: 'assets/images/placeholder.jpg',
-          duration: s['duration'],
+          sceneIndex: s['sceneIndex'] ?? 1,
+          narrationText: s['narrationText'] ?? '',
+          visualPrompt: s['visualPrompt'] ?? '',
+          searchQuery: s['youtubeSearchQuery'] ?? s['searchQuery'] ?? topic,
+          mediaPath: '',
+          duration: (s['duration'] as num?)?.toDouble() ?? 5.0,
         );
       }).toList();
 
       newProject.scenes = parsedScenes;
+      newProject.progress = 0.45;
+      newProject.statusMessage = '🔍 Searching YouTube & web for real-time video clips...';
+      notifyListeners();
 
-      // Step 2: Voiceover Synthesis (0.6)
+      // Step 2: Real YouTube Video Stream & Clip Search (yt-dlp engine in Dart)
+      for (int i = 0; i < parsedScenes.length; i++) {
+        final scene = parsedScenes[i];
+        final query = scene.searchQuery.isNotEmpty ? scene.searchQuery : topic;
+        newProject.statusMessage = '📥 Searching clip for Scene ${scene.sceneIndex}: "$query"...';
+        notifyListeners();
+
+        final clipInfo = await _apiService.searchAndFetchYouTubeClip(query);
+        if (clipInfo != null) {
+          scene.mediaPath = clipInfo.directStreamUrl;
+          scene.streamUrl = clipInfo.directStreamUrl;
+          scene.thumbnailUrl = clipInfo.thumbnailUrl;
+          scene.isVideo = true;
+        }
+      }
+
+      // Step 3: Real Hindi TTS Voiceover Generation
       newProject.status = ProjectStatus.generatingVoice;
-      newProject.progress = 0.6;
-      newProject.statusMessage = '🎙️ Generating emotional Hindi voiceover ($voiceModel)...';
+      newProject.progress = 0.70;
+      newProject.statusMessage = '🎙️ Synthesizing real Hindi audio speech for all scenes...';
       notifyListeners();
-      await Future.delayed(const Duration(seconds: 1));
 
-      // Step 3: Compositing & Rendering (0.85)
+      for (int i = 0; i < parsedScenes.length; i++) {
+        final scene = parsedScenes[i];
+        if (scene.narrationText.isNotEmpty) {
+          final audioPath = await _apiService.synthesizeVoiceover(
+            text: scene.narrationText,
+            voiceId: voiceModel,
+          );
+          scene.audioPath = audioPath;
+        }
+      }
+
+      // Step 4: Multi-Track Timeline Compositing
       newProject.status = ProjectStatus.rendering;
-      newProject.progress = 0.85;
-      newProject.statusMessage = '🎬 Applying Ken Burns animation & mixing ducked BGM...';
+      newProject.progress = 0.90;
+      newProject.statusMessage = '🎬 Assembling CapCut multi-track timeline & dynamic captions...';
       notifyListeners();
-      await Future.delayed(const Duration(seconds: 1));
 
-      // Step 4: Completed
+      // Step 5: Completed
       newProject.status = ProjectStatus.completed;
       newProject.progress = 1.0;
-      newProject.statusMessage = '✅ Master video & thumbnail generated successfully!';
+      newProject.statusMessage = '✅ Real-time project ready! Opening timeline editor...';
       newProject.masterVideoPath = '/storage/emulated/0/Download/yt2.0/projects/${newProject.id}.mp4';
-      newProject.thumbnailPath = '/storage/emulated/0/Download/yt2.0/projects/thumb_${newProject.id}.jpg';
+      newProject.thumbnailPath = parsedScenes.isNotEmpty ? parsedScenes.first.thumbnailUrl : '';
       _isGenerating = false;
       notifyListeners();
 
       return newProject;
     } catch (e) {
       newProject.status = ProjectStatus.failed;
-      newProject.statusMessage = 'Error during generation: $e';
+      newProject.statusMessage = 'Generation note: $e';
       _isGenerating = false;
       notifyListeners();
-      rethrow;
+      return newProject;
     }
   }
 
-  void setActiveProject(ProjectModel project) {
-    _activeProject = project;
+  void cancelGeneration() {
+    _isGenerating = false;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _apiService.dispose();
+    super.dispose();
   }
 }

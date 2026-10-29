@@ -41,10 +41,10 @@ class TimelineEditorProvider extends ChangeNotifier {
     for (var scene in _project!.scenes) {
       visualClips.add(TimelineClip(
         id: 'vis_${scene.id}',
-        title: 'Scene ${scene.sceneIndex}',
+        title: 'Scene ${scene.sceneIndex}: ${scene.searchQuery.isNotEmpty ? scene.searchQuery : "Visual"}',
         startTime: runningTime,
         duration: scene.duration,
-        mediaRef: scene.mediaPath,
+        mediaRef: scene.mediaPath.isNotEmpty ? scene.mediaPath : scene.thumbnailUrl,
       ));
 
       voClips.add(TimelineClip(
@@ -52,7 +52,7 @@ class TimelineEditorProvider extends ChangeNotifier {
         title: scene.narrationText,
         startTime: runningTime,
         duration: scene.duration,
-        mediaRef: 'vo_${scene.sceneIndex}.mp3',
+        mediaRef: scene.audioPath.isNotEmpty ? scene.audioPath : 'vo_${scene.sceneIndex}.mp3',
       ));
 
       runningTime += scene.duration;

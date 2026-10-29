@@ -9,7 +9,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _elevenLabsKeyController = TextEditingController();
-  final TextEditingController _geminiKeyController = TextEditingController();
+  final TextEditingController _geminiKeyController = TextEditingController(text: "AIzaSyBuCSw85cosmXjEeIYPGlLFm5oC9u58a0U");
   String _exportResolution = "1080p Full HD";
 
   @override
